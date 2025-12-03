@@ -3,27 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>スマートコントラクト自動販売機 デモ</title>
+    <title>スマートコントラクト自動販売機 - PC表示用</title>
     
-    <!-- Web3Modal & WalletConnect -->
+    <!-- 必要なライブラリをCDNから読み込み -->
     <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
-    <script src="https://unpkg.com/@walletconnect/web3-provider@1.7.8/dist/umd/index.min.js"></script>
-    <script src="https://unpkg.com/web3modal@1.9.12/dist/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/client@1.8.0/dist/umd/index.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/qrcode-modal@1.8.0/dist/umd/index.min.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>🥤 スマートコントラクト自動販売機</h1>
+        <h2>PC画面表示 → スマホMetaMaskスキャン用</h2>
         
-        <div class="connection-info">
-            <p>📱 スマホのMetaMaskでも接続可能！</p>
-            <small>「ウォレット接続」ボタンを押してQRコードをスキャン</small>
+        <div class="info-box">
+            <p><strong>📱 接続方法：</strong></p>
+            <ol>
+                <li>「QRコードを表示」ボタンをクリック</li>
+                <li>スマホのMetaMaskを開く</li>
+                <li>MetaMask内の「WalletConnect」でQRスキャン</li>
+            </ol>
         </div>
         
         <div id="alert" class="alert"></div>
         
         <div class="status-box">
             <div class="status-item">
-                <span class="status-label">ウォレット接続:</span>
+                <span class="status-label">接続状態:</span>
                 <span id="walletStatus" class="status-value">未接続</span>
             </div>
             <div class="status-item">
@@ -41,55 +46,59 @@
         </div>
         
         <div class="vending-machine">
+            <button onclick="connectWithWalletConnect()" id="connectBtn" class="connect-btn">
+                📱 QRコードを表示
+            </button>
+            <button onclick="disconnectWallet()" id="disconnectBtn" class="disconnect-btn" style="display:none;">
+                接続を切断
+            </button>
+            
             <div class="payment-section">
-                <h3>💴 支払い金額を入力</h3>
-                <div class="input-group">
-                    <input type="number" id="paymentAmount" min="0" max="1000" placeholder="金額を入力（例: 200）">
-                    <button onclick="onConnect()" id="connectBtn" class="connect-btn">
-                        📱 ウォレット接続
-                    </button>
-                </div>
-                <button onclick="disconnect()" id="disconnectBtn" class="disconnect-btn" style="display:none;">
-                    接続を切断
-                </button>
+                <h3>💴 支払い金額</h3>
+                <input type="number" id="paymentAmount" min="0" max="1000" 
+                       placeholder="金額を入力（例: 200）" class="payment-input">
             </div>
             
-            <h3>🍹 商品を選択</h3>
+            <h3>🍹 商品選択</h3>
             <div class="products">
-                <button class="product-btn" onclick="buyDrink(0)" id="waterBtn" disabled>
-                    <div class="product-name">💧 水</div>
-                    <div class="product-price">100円</div>
+                <button class="product-btn" onclick="buyDrink(0)" disabled>
+                    <div class="emoji">💧</div>
+                    <div class="name">水</div>
+                    <div class="price">100円</div>
                 </button>
-                <button class="product-btn" onclick="buyDrink(1)" id="sodaBtn" disabled>
-                    <div class="product-name">🥤 ソーダ</div>
-                    <div class="product-price">200円</div>
+                <button class="product-btn" onclick="buyDrink(1)" disabled>
+                    <div class="emoji">🥤</div>
+                    <div class="name">ソーダ</div>
+                    <div class="price">200円</div>
                 </button>
-                <button class="product-btn" onclick="buyDrink(2)" id="coffeeBtn" disabled>
-                    <div class="product-name">☕ コーヒー</div>
-                    <div class="product-price">300円</div>
+                <button class="product-btn" onclick="buyDrink(2)" disabled>
+                    <div class="emoji">☕</div>
+                    <div class="name">コーヒー</div>
+                    <div class="price">300円</div>
                 </button>
             </div>
+        </div>
+        
+        <div class="etherscan-section">
+            <h3>🔍 ブロックチェーン確認</h3>
+            <button onclick="viewOnEtherscan()" class="etherscan-btn" id="etherscanBtn" disabled>
+                最新の取引をEtherscanで見る
+            </button>
         </div>
         
         <div class="history">
             <h3>📝 購入履歴</h3>
             <div id="historyList">
-                <div class="history-item">まだ購入履歴はありません</div>
+                <div class="history-item">接続してください</div>
             </div>
         </div>
         
-        <div class="instructions">
-            <h3>📖 使い方</h3>
-            <ol>
-                <li><strong>PCの場合:</strong> MetaMask拡張機能を使用</li>
-                <li><strong>スマホの場合:</strong> 
-                    <ul>
-                        <li>PCで「ウォレット接続」をクリック</li>
-                        <li>表示されるQRコードをスマホのMetaMaskでスキャン</li>
-                        <li>MetaMaskアプリ内の「WalletConnect」機能を使用</li>
-                    </ul>
-                </li>
-            </ol>
+        <!-- 手動QRコード表示エリア（バックアップ用） -->
+        <div id="manualQR" class="manual-qr" style="display:none;">
+            <h3>QRコードが表示されない場合</h3>
+            <p>以下のURIをQRコード生成サイトで変換してください：</p>
+            <textarea id="wcUri" readonly></textarea>
+            <button onclick="copyUri()">コピー</button>
         </div>
     </div>
 
@@ -101,100 +110,124 @@
         }
         
         body {
-            font-family: 'Segoe UI', 'Arial', sans-serif;
+            font-family: -apple-system, 'Segoe UI', sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             padding: 20px;
         }
         
         .container {
+            max-width: 800px;
+            margin: 0 auto;
             background: white;
             border-radius: 20px;
             padding: 30px;
-            max-width: 700px;
-            width: 100%;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
         
         h1 {
-            color: #333;
             text-align: center;
-            margin-bottom: 20px;
+            color: #333;
+            margin-bottom: 10px;
             font-size: 28px;
         }
         
-        .connection-info {
+        h2 {
             text-align: center;
-            background: #f0f9ff;
-            border: 2px solid #3b82f6;
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .info-box {
+            background: #e0f2fe;
+            border: 2px solid #0284c7;
             border-radius: 10px;
-            padding: 15px;
+            padding: 20px;
             margin-bottom: 20px;
         }
         
-        .connection-info p {
-            color: #1e40af;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .connection-info small {
-            color: #64748b;
+        .info-box ol {
+            margin-left: 20px;
+            color: #075985;
         }
         
         .status-box {
-            background: #f0f4f8;
+            background: #f8fafc;
             border-radius: 10px;
             padding: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
         }
         
         .status-item {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 10px;
             font-size: 14px;
         }
         
         .status-label {
-            color: #666;
+            color: #64748b;
         }
         
         .status-value {
             font-weight: bold;
-            color: #333;
-            font-family: monospace;
+            color: #1e293b;
         }
         
         .vending-machine {
-            background: linear-gradient(145deg, #e6e6e6, #ffffff);
+            background: #f1f5f9;
             border-radius: 15px;
             padding: 25px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .connect-btn {
+            width: 100%;
+            padding: 20px;
+            background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .connect-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .disconnect-btn {
+            width: 100%;
+            padding: 15px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
         }
         
         .payment-section {
-            margin-bottom: 30px;
+            margin-bottom: 20px;
         }
         
         .payment-section h3, .vending-machine h3 {
-            margin-bottom: 15px;
-            color: #333;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 10px;
+            color: #334155;
             margin-bottom: 10px;
+            font-size: 16px;
         }
         
-        input[type="number"] {
-            flex: 1;
+        .payment-input {
+            width: 100%;
             padding: 12px;
-            border: 2px solid #ddd;
+            border: 2px solid #e2e8f0;
             border-radius: 8px;
             font-size: 16px;
         }
@@ -203,24 +236,22 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 15px;
-            margin-bottom: 25px;
         }
         
         .product-btn {
             background: white;
-            border: 2px solid #667eea;
+            border: 2px solid #cbd5e1;
             border-radius: 10px;
             padding: 20px 10px;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
             text-align: center;
         }
         
-        .product-btn:hover:not(:disabled) {
-            background: #667eea;
-            color: white;
-            transform: translateY(-3px);
-            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        .product-btn:not(:disabled):hover {
+            border-color: #667eea;
+            background: #f0f9ff;
+            transform: translateY(-2px);
         }
         
         .product-btn:disabled {
@@ -228,406 +259,312 @@
             cursor: not-allowed;
         }
         
-        .product-name {
-            font-size: 18px;
+        .product-btn .emoji {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .product-btn .name {
             font-weight: bold;
+            color: #334155;
             margin-bottom: 5px;
         }
         
-        .product-price {
+        .product-btn .price {
+            color: #64748b;
             font-size: 14px;
-            color: #666;
         }
         
-        .product-btn:hover:not(:disabled) .product-price {
-            color: white;
+        .etherscan-section {
+            background: #fef3c7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
         }
         
-        button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 12px 25px;
+        .etherscan-section h3 {
+            color: #92400e;
+            margin-bottom: 10px;
+        }
+        
+        .etherscan-btn {
+            width: 100%;
+            padding: 12px;
+            background: white;
+            color: #0284c7;
+            border: 2px solid #0284c7;
             border-radius: 8px;
+            font-size: 14px;
             cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s ease;
             font-weight: bold;
         }
         
-        .connect-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .etherscan-btn:not(:disabled):hover {
+            background: #0284c7;
+            color: white;
         }
         
-        .disconnect-btn {
-            background: #ef4444;
-            width: 100%;
-            margin-top: 10px;
-        }
-        
-        .disconnect-btn:hover {
-            background: #dc2626;
-        }
-        
-        button:hover {
-            background: #5a67d8;
-        }
-        
-        button:disabled {
-            background: #ccc;
+        .etherscan-btn:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
         }
         
         .history {
-            margin-top: 30px;
-            padding-top: 30px;
-            border-top: 2px solid #eee;
+            margin-top: 20px;
         }
         
         .history h3 {
-            color: #333;
-            margin-bottom: 15px;
+            color: #334155;
+            margin-bottom: 10px;
         }
         
         .history-item {
-            background: #f8f9fa;
+            background: #f8fafc;
             padding: 12px;
-            margin-bottom: 10px;
-            border-radius: 5px;
+            border-radius: 8px;
+            margin-bottom: 8px;
             font-size: 14px;
+            color: #475569;
             border-left: 3px solid #667eea;
         }
         
         .alert {
-            padding: 12px;
+            padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
+            font-size: 14px;
         }
         
         .alert.success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: #dcfce7;
+            color: #166534;
         }
         
         .alert.error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: #fee2e2;
+            color: #991b1b;
         }
         
         .alert.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
+            background: #dbeafe;
+            color: #1e40af;
         }
         
-        .instructions {
-            margin-top: 30px;
-            padding: 20px;
-            background: #fef3c7;
+        .manual-qr {
+            background: #f3f4f6;
             border-radius: 10px;
-            border: 1px solid #fbbf24;
+            padding: 20px;
+            margin-top: 20px;
         }
         
-        .instructions h3 {
-            color: #92400e;
-            margin-bottom: 15px;
+        .manual-qr textarea {
+            width: 100%;
+            height: 100px;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #d1d5db;
+            font-family: monospace;
+            font-size: 12px;
         }
         
-        .instructions ol {
-            margin-left: 20px;
-            color: #78350f;
-        }
-        
-        .instructions li {
-            margin-bottom: 10px;
-        }
-        
-        .instructions ul {
-            margin-top: 5px;
-            margin-left: 20px;
-        }
-        
-        /* Web3Modal のスタイル調整 */
-        .web3modal-modal-lightbox {
-            z-index: 9999 !important;
+        .manual-qr button {
+            padding: 10px 20px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
         }
     </style>
 
     <script>
         // ===========================
-        // 設定値
+        // 設定
         // ===========================
+        const CONTRACT_ADDRESS = '0x56b6c7d73e2c583939FB9bc419cac2b2Bd5EA06C'; // あなたのコントラクト
+        const SEPOLIA_RPC = 'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161';
         
-        // ⚠️ ここにデプロイ後のコントラクトアドレスを必ず設定してください！
-        const CONTRACT_ADDRESS = '0x56b6c7d73e2c583939FB9bc419cac2b2Bd5EA06C'; // RemixIDEでデプロイ後のアドレス
-        
-        // Sepolia RPCエンドポイント（Infuraの公開エンドポイント）
-        const RPC_URL = 'https://sepolia.infura.io/v3/9aa3d95b3bc440fa88ea12eaa4456161';
-        
-        // コントラクトのABI（簡略版）
         const CONTRACT_ABI = [
-            {
-                "inputs": [],
-                "stateMutability": "nonpayable",
-                "type": "constructor"
-            },
-            {
-                "inputs": [
-                    {"internalType": "enum VendingMachine.Drink", "name": "_drink", "type": "uint8"}, 
-                    {"internalType": "uint256", "name": "_payment", "type": "uint256"}
-                ],
-                "name": "buyDrink",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "getBalance",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "getMyPurchases",
-                "outputs": [
-                    {
-                        "components": [
-                            {"internalType": "address", "name": "buyer", "type": "address"}, 
-                            {"internalType": "enum VendingMachine.Drink", "name": "drink", "type": "uint8"}, 
-                            {"internalType": "uint256", "name": "price", "type": "uint256"}, 
-                            {"internalType": "uint256", "name": "timestamp", "type": "uint256"}, 
-                            {"internalType": "uint256", "name": "change", "type": "uint256"}
-                        ], 
-                        "internalType": "struct VendingMachine.Purchase[]", 
-                        "name": "", 
-                        "type": "tuple[]"
-                    }
-                ],
-                "stateMutability": "view",
-                "type": "function"
-            }
+            {"inputs": [], "stateMutability": "nonpayable", "type": "constructor"},
+            {"inputs": [{"internalType": "enum VendingMachine.Drink", "name": "_drink", "type": "uint8"}, {"internalType": "uint256", "name": "_payment", "type": "uint256"}], "name": "buyDrink", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+            {"inputs": [], "name": "getBalance", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+            {"inputs": [], "name": "getMyPurchases", "outputs": [{"components": [{"internalType": "address", "name": "buyer", "type": "address"}, {"internalType": "enum VendingMachine.Drink", "name": "drink", "type": "uint8"}, {"internalType": "uint256", "name": "price", "type": "uint256"}, {"internalType": "uint256", "name": "timestamp", "type": "uint256"}, {"internalType": "uint256", "name": "change", "type": "uint256"}], "internalType": "struct VendingMachine.Purchase[]", "name": "", "type": "tuple[]"}], "stateMutability": "view", "type": "function"}
         ];
         
-        // ===========================
-        // グローバル変数
-        // ===========================
-        let web3Modal;
-        let provider;
+        let connector;
         let web3;
         let contract;
-        let selectedAccount;
+        let account;
+        let lastTxHash;
         
         // ===========================
-        // Web3Modal初期化
+        // WalletConnect接続
         // ===========================
-        function initWeb3Modal() {
-            const providerOptions = {
-                walletconnect: {
-                    package: window.WalletConnectProvider.default,
-                    options: {
-                        rpc: {
-                            11155111: RPC_URL  // Sepolia Chain ID
-                        },
-                        network: 'sepolia',
-                        qrcodeModalOptions: {
-                            mobileLinks: [
-                                "metamask",
-                                "trust",
-                                "rainbow",
-                                "argent"
-                            ]
-                        }
+        async function connectWithWalletConnect() {
+            try {
+                showAlert('info', 'QRコードを生成中...');
+                
+                // WalletConnectorを作成
+                connector = new window.WalletConnect.default({
+                    bridge: 'https://bridge.walletconnect.org',
+                    qrcodeModal: window.WalletConnectQRCodeModal.default
+                });
+                
+                // 既に接続されている場合は削除
+                if (connector.connected) {
+                    await connector.killSession();
+                }
+                
+                // 接続イベントのリスナー設定
+                connector.on('connect', (error, payload) => {
+                    if (error) {
+                        throw error;
+                    }
+                    
+                    // 接続成功
+                    const { accounts, chainId } = payload.params[0];
+                    onConnect(accounts[0], chainId);
+                });
+                
+                connector.on('session_update', (error, payload) => {
+                    if (error) {
+                        throw error;
+                    }
+                    const { accounts, chainId } = payload.params[0];
+                    onConnect(accounts[0], chainId);
+                });
+                
+                connector.on('disconnect', (error, payload) => {
+                    if (error) {
+                        throw error;
+                    }
+                    onDisconnect();
+                });
+                
+                // 接続を開始（QRコードモーダルが自動表示される）
+                if (!connector.connected) {
+                    await connector.createSession();
+                    
+                    // URIを手動QRコードエリアに表示（バックアップ）
+                    if (connector.uri) {
+                        document.getElementById('wcUri').value = connector.uri;
+                        document.getElementById('manualQR').style.display = 'block';
                     }
                 }
-            };
-            
-            web3Modal = new window.Web3Modal.default({
-                cacheProvider: false,
-                providerOptions,
-                theme: {
-                    background: "rgb(255, 255, 255)",
-                    main: "rgb(51, 51, 51)",
-                    secondary: "rgb(136, 136, 136)",
-                    border: "rgba(195, 195, 195, 0.14)",
-                    hover: "rgb(102, 126, 234)"
-                }
-            });
+                
+                showAlert('info', 'QRコードをスマホのMetaMaskでスキャンしてください');
+                
+            } catch (error) {
+                console.error('Connection error:', error);
+                showAlert('error', 'エラー: ' + error.message);
+            }
         }
         
         // ===========================
-        // ウォレット接続
+        // 接続成功時の処理
         // ===========================
-        async function onConnect() {
+        async function onConnect(address, chainId) {
             try {
-                showAlert('info', '接続中... QRコードが表示されたらMetaMaskでスキャンしてください');
+                account = address;
                 
-                // プロバイダー取得（ここでQRコードモーダルが表示される）
-                provider = await web3Modal.connect();
-                
-                // Web3インスタンス作成
-                web3 = new Web3(provider);
-                
-                // アカウント取得
-                const accounts = await web3.eth.getAccounts();
-                selectedAccount = accounts[0];
-                
-                // ネットワーク確認
-                const chainId = await web3.eth.getChainId();
-                if (chainId !== 11155111) {
-                    showAlert('error', 'Sepoliaネットワークに切り替えてください');
-                    return;
-                }
-                
-                // コントラクトインスタンス作成
+                // Web3を初期化
+                web3 = new Web3(new Web3.providers.HttpProvider(SEPOLIA_RPC));
                 contract = new web3.eth.Contract(CONTRACT_ABI, CONTRACT_ADDRESS);
                 
                 // UI更新
-                await updateUI();
-                showAlert('success', '✅ ウォレットに接続しました！');
+                document.getElementById('walletStatus').textContent = '接続済み';
+                document.getElementById('network').textContent = chainId === 11155111 ? 'Sepolia' : 'Wrong Network';
+                document.getElementById('account').textContent = 
+                    account.substring(0, 6) + '...' + account.substring(38);
+                
+                // 残高取得
+                await updateBalance();
                 
                 // ボタン状態更新
                 document.getElementById('connectBtn').style.display = 'none';
                 document.getElementById('disconnectBtn').style.display = 'block';
-                document.getElementById('waterBtn').disabled = false;
-                document.getElementById('sodaBtn').disabled = false;
-                document.getElementById('coffeeBtn').disabled = false;
+                document.getElementById('manualQR').style.display = 'none';
                 
-                // 購入履歴読み込み
-                await loadPurchaseHistory();
+                // 商品ボタンを有効化
+                document.querySelectorAll('.product-btn').forEach(btn => {
+                    btn.disabled = false;
+                });
                 
-                // イベントリスナー設定
-                if (provider.on) {
-                    provider.on("accountsChanged", handleAccountsChanged);
-                    provider.on("chainChanged", handleChainChanged);
-                }
+                showAlert('success', '✅ スマホのMetaMaskと接続しました！');
+                
+                // 購入履歴を取得
+                await loadHistory();
                 
             } catch (error) {
-                console.error('Connection error:', error);
-                showAlert('error', '接続エラー: ' + error.message);
+                showAlert('error', '接続処理エラー: ' + error.message);
             }
         }
         
         // ===========================
-        // 切断処理
+        // 残高更新
         // ===========================
-        async function disconnect() {
-            if (provider && provider.close) {
-                await provider.close();
-            }
-            
-            await web3Modal.clearCachedProvider();
-            provider = null;
-            web3 = null;
-            contract = null;
-            selectedAccount = null;
-            
-            // UI初期化
-            document.getElementById('walletStatus').textContent = '未接続';
-            document.getElementById('network').textContent = '-';
-            document.getElementById('account').textContent = '-';
-            document.getElementById('balance').textContent = '-';
-            document.getElementById('historyList').innerHTML = '<div class="history-item">まだ購入履歴はありません</div>';
-            
-            // ボタン状態更新
-            document.getElementById('connectBtn').style.display = 'block';
-            document.getElementById('disconnectBtn').style.display = 'none';
-            document.getElementById('waterBtn').disabled = true;
-            document.getElementById('sodaBtn').disabled = true;
-            document.getElementById('coffeeBtn').disabled = true;
-            
-            showAlert('info', '接続を切断しました');
-        }
-        
-        // ===========================
-        // アカウント変更処理
-        // ===========================
-        function handleAccountsChanged(accounts) {
-            if (accounts.length === 0) {
-                disconnect();
-            } else {
-                selectedAccount = accounts[0];
-                updateUI();
-                loadPurchaseHistory();
-            }
-        }
-        
-        // ===========================
-        // チェーン変更処理
-        // ===========================
-        function handleChainChanged(chainId) {
-            window.location.reload();
-        }
-        
-        // ===========================
-        // UI更新
-        // ===========================
-        async function updateUI() {
-            if (!contract || !selectedAccount) return;
+        async function updateBalance() {
+            if (!contract || !account) return;
             
             try {
-                // 残高取得
-                const balance = await contract.methods.getBalance().call({ from: selectedAccount });
-                
-                // ネットワーク名取得
-                const chainId = await web3.eth.getChainId();
-                const networkName = chainId === 11155111 ? 'Sepolia' : 'Unknown';
-                
-                // UI表示更新
-                document.getElementById('walletStatus').textContent = '接続済み';
-                document.getElementById('network').textContent = networkName;
-                document.getElementById('account').textContent = 
-                    selectedAccount.substring(0, 6) + '...' + selectedAccount.substring(38);
+                const balance = await contract.methods.getBalance().call({ from: account });
                 document.getElementById('balance').textContent = balance + '円';
-                
             } catch (error) {
-                console.error('UI更新エラー:', error);
+                console.error('Balance error:', error);
             }
         }
         
         // ===========================
-        // 飲料購入
+        // 購入処理
         // ===========================
         async function buyDrink(drinkId) {
-            const paymentAmount = document.getElementById('paymentAmount').value;
+            const payment = document.getElementById('paymentAmount').value;
             
-            if (!paymentAmount || paymentAmount <= 0) {
+            if (!payment || payment <= 0) {
                 showAlert('error', '支払い金額を入力してください');
                 return;
             }
             
-            const drinkNames = ['水', 'ソーダ', 'コーヒー'];
-            const drinkPrices = [100, 200, 300];
+            const drinks = ['水', 'ソーダ', 'コーヒー'];
+            const prices = [100, 200, 300];
             
             try {
-                showAlert('info', `${drinkNames[drinkId]}を購入中... MetaMaskで承認してください`);
+                showAlert('info', `${drinks[drinkId]}を購入中... スマホで承認してください`);
                 
-                // スマートコントラクト実行
-                const result = await contract.methods.buyDrink(drinkId, paymentAmount)
-                    .send({ from: selectedAccount });
+                // トランザクションデータを作成
+                const txData = contract.methods.buyDrink(drinkId, payment).encodeABI();
                 
-                const change = paymentAmount - drinkPrices[drinkId];
-                let message = `✅ ${drinkNames[drinkId]}を購入しました！`;
-                if (change > 0) {
-                    message += ` お釣り: ${change}円`;
-                }
+                // WalletConnect経由でトランザクション送信
+                const tx = {
+                    from: account,
+                    to: CONTRACT_ADDRESS,
+                    data: txData,
+                    gas: 100000,
+                };
+                
+                // スマホに承認リクエストを送信
+                const result = await connector.sendTransaction(tx);
+                lastTxHash = result;
+                
+                // Etherscanボタンを有効化
+                document.getElementById('etherscanBtn').disabled = false;
+                
+                const change = payment - prices[drinkId];
+                let message = `✅ ${drinks[drinkId]}購入完了！`;
+                if (change > 0) message += ` お釣り: ${change}円`;
                 
                 showAlert('success', message);
                 
                 // UI更新
-                await updateUI();
-                await loadPurchaseHistory();
-                
-                // 入力フィールドクリア
                 document.getElementById('paymentAmount').value = '';
+                await updateBalance();
+                await loadHistory();
                 
             } catch (error) {
                 console.error('Purchase error:', error);
-                if (error.message.includes('User denied')) {
+                if (error.message.includes('User rejected')) {
                     showAlert('error', 'トランザクションがキャンセルされました');
                 } else {
                     showAlert('error', '購入エラー: ' + error.message);
@@ -636,64 +573,105 @@
         }
         
         // ===========================
-        // 購入履歴読み込み
+        // 購入履歴
         // ===========================
-        async function loadPurchaseHistory() {
-            if (!contract || !selectedAccount) return;
+        async function loadHistory() {
+            if (!contract || !account) return;
             
             try {
                 const purchases = await contract.methods.getMyPurchases()
-                    .call({ from: selectedAccount });
+                    .call({ from: account });
                 
-                const historyList = document.getElementById('historyList');
+                const historyDiv = document.getElementById('historyList');
                 
                 if (purchases.length === 0) {
-                    historyList.innerHTML = '<div class="history-item">まだ購入履歴はありません</div>';
+                    historyDiv.innerHTML = '<div class="history-item">購入履歴はまだありません</div>';
                 } else {
-                    const drinkNames = ['💧 水', '🥤 ソーダ', '☕ コーヒー'];
-                    
-                    historyList.innerHTML = purchases.map((purchase, index) => {
-                        const date = new Date(purchase.timestamp * 1000);
-                        const timeStr = date.toLocaleString('ja-JP');
-                        
+                    const drinks = ['💧 水', '🥤 ソーダ', '☕ コーヒー'];
+                    historyDiv.innerHTML = purchases.map((p, i) => {
+                        const date = new Date(p.timestamp * 1000);
                         return `
                             <div class="history-item">
-                                <strong>購入 #${index + 1}</strong><br>
-                                商品: ${drinkNames[purchase.drink]}<br>
-                                価格: ${purchase.price}円
-                                ${purchase.change > 0 ? `<br>お釣り: ${purchase.change}円` : ''}<br>
-                                <small>時刻: ${timeStr}</small>
+                                <strong>購入 #${i+1}</strong><br>
+                                ${drinks[p.drink]} - ${p.price}円
+                                ${p.change > 0 ? `(お釣り${p.change}円)` : ''}<br>
+                                <small>${date.toLocaleString('ja-JP')}</small>
                             </div>
                         `;
                     }).reverse().join('');
                 }
             } catch (error) {
-                console.error('履歴取得エラー:', error);
+                console.error('History error:', error);
             }
         }
         
         // ===========================
-        // アラート表示
+        // Etherscanで表示
+        // ===========================
+        function viewOnEtherscan() {
+            if (lastTxHash) {
+                window.open(`https://sepolia.etherscan.io/tx/${lastTxHash}`, '_blank');
+            }
+        }
+        
+        // ===========================
+        // 切断処理
+        // ===========================
+        async function disconnectWallet() {
+            if (connector) {
+                await connector.killSession();
+            }
+            onDisconnect();
+        }
+        
+        function onDisconnect() {
+            // UI初期化
+            document.getElementById('walletStatus').textContent = '未接続';
+            document.getElementById('network').textContent = '-';
+            document.getElementById('account').textContent = '-';
+            document.getElementById('balance').textContent = '-';
+            document.getElementById('historyList').innerHTML = '<div class="history-item">接続してください</div>';
+            
+            // ボタン状態初期化
+            document.getElementById('connectBtn').style.display = 'block';
+            document.getElementById('disconnectBtn').style.display = 'none';
+            document.getElementById('etherscanBtn').disabled = true;
+            
+            // 商品ボタン無効化
+            document.querySelectorAll('.product-btn').forEach(btn => {
+                btn.disabled = true;
+            });
+            
+            connector = null;
+            web3 = null;
+            contract = null;
+            account = null;
+            
+            showAlert('info', '接続を切断しました');
+        }
+        
+        // ===========================
+        // ユーティリティ
         // ===========================
         function showAlert(type, message) {
-            const alertDiv = document.getElementById('alert');
-            alertDiv.className = `alert ${type}`;
-            alertDiv.textContent = message;
-            alertDiv.style.display = 'block';
+            const alert = document.getElementById('alert');
+            alert.className = `alert ${type}`;
+            alert.textContent = message;
+            alert.style.display = 'block';
             
             if (type !== 'info') {
                 setTimeout(() => {
-                    alertDiv.style.display = 'none';
+                    alert.style.display = 'none';
                 }, 5000);
             }
         }
         
-        // ===========================
-        // 初期化
-        // ===========================
-        window.addEventListener('load', () => {
-            initWeb3Modal();
-        });
+        function copyUri() {
+            const uri = document.getElementById('wcUri');
+            uri.select();
+            document.execCommand('copy');
+            alert('URIをコピーしました');
+        }
     </script>
 </body>
 </html>
