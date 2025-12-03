@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スマートコントラクト自動販売機 デモ</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+        
+        .status-box {
+            background: #f0f4f8;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .status-label {
+            color: #666;
+        }
+        
+        .status-value {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .vending-machine {
+            background: linear-gradient(145deg, #e6e6e6, #ffffff);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .payment-section {
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        input[type="number"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        
+        .products {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .product-btn {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 20px 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .product-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        }
+        
+        .product-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .product-price {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .product-btn:hover .product-price {
+            color: white;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background 0.3s ease;
+        }
+        
+        button:hover {
+            background: #5a67d8;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .history {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+        
+        .history h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .history-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥤 スマートコントラクト自動販売機</h1>
+        
+        <div id="alert" class="alert"></div>
+        
+        <div class="status-box">
+            <div class="status-item">
+                <span class="status-label">ウォレット接続:</span>
+                <span id="walletStatus" class="status-value">未接続</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">アカウント:</span>
+                <span id="account" class="status-value">-</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">残高:</span>
+                <span id="balance" class="status-value">-</span>
+            </div>
+        </div>
+        
+        <div class="vending-machine">
+            <div class="payment-section">
+                <h3 style="margin-bottom: 15px;">💴 支払い金額を入力</h3>
+                <div class="input-group">
+                    <input type="number" id="paymentAmount" min="0" max="1000" placeholder="金額を入力（例: 200）">
+                    <button onclick="connectWallet()" id="connectBtn">ウォレット接続</button>
+                </div>
+            </div>
+            
+            <h3 style="margin-bottom: 15px;">🍹 商品を選択</h3>
+            <div class="products">
+                <button class="product-btn" onclick="buyDrink(0)" id="waterBtn" disabled>
+                    <div class="product-name">💧 水</div>
+                    <div class="product-price">100円</div>
+                </button>
+                <button class="product-btn" onclick="buyDrink(1)" id="sodaBtn" disabled>
+                    <div class="product-name">🥤 ソーダ</div>
+                    <div class="product-price">200円</div>
+                </button>
+                <button class="product-btn" onclick="buyDrink(2)" id="coffeeBtn" disabled>
+                    <div class="product-name">☕ コーヒー</div>
+                    <div class="product-price">300円</div>
+                </button>
+            </div>
+        </div>
+        
+        <div class="history">
+            <h3>📝 購入履歴</h3>
+            <div id="historyList">
+                <div class="history-item">まだ購入履歴はありません</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // コントラクトのABI（RemixIDEからコピー）
+        const contractABI = [
+            {
+                "inputs": [],
+                "stateMutability": "nonpayable",
+                "type": "constructor"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+                    {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+                ],
+                "name": "ChangeReturned",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": true, "internalType": "address", "name": "buyer", "type": "address"},
+                    {"indexed": false, "internalType": "enum VendingMachine.Drink", "name": "drink", "type": "uint8"},
+                    {"indexed": false, "internalType": "uint256", "name": "price", "type": "uint256"},
+                    {"indexed": false, "internalType": "uint256", "name": "change", "type": "uint256"}
+                ],
+                "name": "DrinkPurchased",
+                "type": "event"
+            },
+            {
+                "anonymous": false,
+                "inputs": [
+                    {"indexed": true, "internalType": "address", "name": "user", "type": "address"},
+                    {"indexed": false, "internalType": "uint256", "name": "amount", "type": "uint256"}
+                ],
+                "name": "MoneyDeposited",
+                "type": "event"
+            },
+            {
+                "inputs": [{"internalType": "enum VendingMachine.Drink", "name": "_drink", "type": "uint8"}, {"internalType": "uint256", "name": "_payment", "type": "uint256"}],
+                "name": "buyDrink",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "uint256", "name": "amount", "type": "uint256"}],
+                "name": "deposit",
+                "outputs": [],
+                "stateMutability": "nonpayable",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getBalance",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [],
+                "name": "getMyPurchases",
+                "outputs": [{"components": [{"internalType": "address", "name": "buyer", "type": "address"}, {"internalType": "enum VendingMachine.Drink", "name": "drink", "type": "uint8"}, {"internalType": "uint256", "name": "price", "type": "uint256"}, {"internalType": "uint256", "name": "timestamp", "type": "uint256"}, {"internalType": "uint256", "name": "change", "type": "uint256"}], "internalType": "struct VendingMachine.Purchase[]", "name": "", "type": "tuple[]"}],
+                "stateMutability": "view",
+                "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "enum VendingMachine.Drink", "name": "", "type": "uint8"}],
+                "name": "prices",
+                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+                "stateMutability": "view",
+                "type": "function"
+            }
+        ];
+        
+        // ここにデプロイ後のコントラクトアドレスを設定
+        const contractAddress = '0xF63e4DdB20222485546464FC32E1e3e10439A9d0'; 
+        
+        let web3;
+        let contract;
+        let account;
+        
+        // MetaMask接続
+        async function connectWallet() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    // MetaMaskに接続要求
+                    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                    account = accounts[0];
+                    
+                    // Web3インスタンス作成
+                    web3 = new Web3(window.ethereum);
+                    
+                    // コントラクトインスタンス作成
+                    contract = new web3.eth.Contract(contractABI, contractAddress);
+                    
+                    // UI更新
+                    updateUI();
+                    showAlert('success', 'ウォレットに接続しました！');
+                    
+                    // ボタンを有効化
+                    document.getElementById('waterBtn').disabled = false;
+                    document.getElementById('sodaBtn').disabled = false;
+                    document.getElementById('coffeeBtn').disabled = false;
+                    document.getElementById('connectBtn').textContent = '接続済み';
+                    document.getElementById('connectBtn').disabled = true;
+                    
+                    // 購入履歴を取得
+                    loadPurchaseHistory();
+                    
+                } catch (error) {
+                    showAlert('error', 'ウォレット接続エラー: ' + error.message);
+                }
+            } else {
+                showAlert('error', 'MetaMaskがインストールされていません');
+            }
+        }
+        
+        // UI更新
+        async function updateUI() {
+            if (!contract || !account) return;
+            
+            try {
+                // 残高取得
+                const balance = await contract.methods.getBalance().call({ from: account });
+                
+                // UI表示更新
+                document.getElementById('walletStatus').textContent = '接続済み';
+                document.getElementById('account').textContent = account.substring(0, 6) + '...' + account.substring(38);
+                document.getElementById('balance').textContent = balance + '円';
+                
+            } catch (error) {
+                console.error('UI更新エラー:', error);
+            }
+        }
+        
+        // 飲料購入
+        async function buyDrink(drinkId) {
+            const paymentAmount = document.getElementById('paymentAmount').value;
+            
+            if (!paymentAmount || paymentAmount <= 0) {
+                showAlert('error', '支払い金額を入力してください');
+                return;
+            }
+            
+            const drinkNames = ['水', 'ソーダ', 'コーヒー'];
+            const drinkPrices = [100, 200, 300];
+            
+            try {
+                showAlert('info', `${drinkNames[drinkId]}を購入中...`);
+                
+                // スマートコントラクトの購入関数を呼び出し
+                const result = await contract.methods.buyDrink(drinkId, paymentAmount)
+                    .send({ from: account });
+                
+                const change = paymentAmount - drinkPrices[drinkId];
+                let message = `✅ ${drinkNames[drinkId]}を購入しました！`;
+                if (change > 0) {
+                    message += ` お釣り: ${change}円`;
+                }
+                
+                showAlert('success', message);
+                
+                // UI更新
+                updateUI();
+                loadPurchaseHistory();
+                
+                // 入力フィールドをクリア
+                document.getElementById('paymentAmount').value = '';
+                
+            } catch (error) {
+                showAlert('error', '購入エラー: ' + error.message);
+            }
+        }
+        
+        // 購入履歴を読み込み
+        async function loadPurchaseHistory() {
+            if (!contract || !account) return;
+            
+            try {
+                const purchases = await contract.methods.getMyPurchases().call({ from: account });
+                
+                const historyList = document.getElementById('historyList');
+                
+                if (purchases.length === 0) {
+                    historyList.innerHTML = '<div class="history-item">まだ購入履歴はありません</div>';
+                } else {
+                    const drinkNames = ['💧 水', '🥤 ソーダ', '☕ コーヒー'];
+                    
+                    historyList.innerHTML = purchases.map((purchase, index) => {
+                        const date = new Date(purchase.timestamp * 1000);
+                        const timeStr = date.toLocaleString('ja-JP');
+                        
+                        return `
+                            <div class="history-item">
+                                <strong>#${index + 1}</strong> 
+                                ${drinkNames[purchase.drink]} - 
+                                ${purchase.price}円 
+                                ${purchase.change > 0 ? `(お釣り: ${purchase.change}円)` : ''} 
+                                <br>
+                                <small>${timeStr}</small>
+                            </div>
+                        `;
+                    }).reverse().join('');
+                }
+            } catch (error) {
+                console.error('履歴取得エラー:', error);
+            }
+        }
+        
+        // アラート表示
+        function showAlert(type, message) {
+            const alertDiv = document.getElementById('alert');
+            alertDiv.className = `alert ${type}`;
+            alertDiv.textContent = message;
+            alertDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                alertDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // アカウント変更を監視
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    location.reload();
+                } else {
+                    account = accounts[0];
+                    updateUI();
+                    loadPurchaseHistory();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
